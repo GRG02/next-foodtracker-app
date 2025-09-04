@@ -86,7 +86,7 @@ export default function Page() {
 
         <div className="mt-6 text-center text-sm">
           <p className="text-white">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="font-bold text-orange-400 underline transition-colors hover:text-orange-300">
               Register here
             </Link>
