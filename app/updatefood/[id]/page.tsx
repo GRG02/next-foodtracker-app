@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -27,8 +27,8 @@ const MOCK_FOOD_DATA = [
     { id: 12, date: '2025-09-06', name: 'พิซซ่า', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
 ];
 
-export default function Page({params}:{params:{id:string}}) {
-  const { id } = params;
+export default function Page({params}:{params:Promise<{id:string}>}) {
+  const { id } = use(params);
   const foodId = parseInt(id as string);
 
   const [formData, setFormData] = useState({
