@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState } from 'react';   
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   IoArrowBackOutline,
@@ -9,21 +10,31 @@ import {
 } from 'react-icons/io5';
 
 export default function Page() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log('Login data submitted:', formData);
-    // TODO: Add login logic, e.g., API call
-  };
+    const handleLoginClick = (e: React.FormEvent) => {
+      e.preventDefault();
+      //เอา email/password ไปตรวจสอบ
+      //เปิดไปหน้า /dashboard
+      router.push('/dashboard');
+    }
+
+//   const [formData, setFormData] = useState({
+//     email: '',
+//     password: '',
+//   });
+
+//   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     const { name, value } = e.target;
+//     setFormData((prev) => ({ ...prev, [name]: value }));
+//   };
+
+//   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+//     e.preventDefault();
+//     console.log('Login data submitted:', formData);
+//     // TODO: Add login logic, e.g., API call
+//   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 p-4 text-white">
@@ -38,16 +49,16 @@ export default function Page() {
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form onSubmit={handleLoginClick} className="mt-8 space-y-4">
           <div className="relative">
             <IoMailOutline className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/80" />
             <input
               type="email"
               name="email"
-              value={formData.email}
-              onChange={handleChange}
+            //   value={formData.email}
+            //   onChange={handleChange}
               placeholder="Email"
-              required
+            //   required
               className="w-full rounded-full border-2 border-transparent bg-white/40 p-3 pl-10 text-white placeholder-white/80 outline-none transition-colors duration-300 focus:border-white focus:bg-white/50"
             />
           </div>
@@ -56,10 +67,10 @@ export default function Page() {
             <input
               type="password"
               name="password"
-              value={formData.password}
-              onChange={handleChange}
+            //   value={formData.password}
+            //   onChange={handleChange}
               placeholder="Password"
-              required
+            //   required
               className="w-full rounded-full border-2 border-transparent bg-white/40 p-3 pl-10 text-white placeholder-white/80 outline-none transition-colors duration-300 focus:border-white focus:bg-white/50"
             />
           </div>
