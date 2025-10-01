@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import {
   IoArrowBackOutline,
@@ -10,12 +12,26 @@ import {
   IoCloseCircleOutline,
 } from 'react-icons/io5';
 
+type Food = {
+  foodname: string;
+  meal: string;
+  fooddate_at: string;
+  foodImage: File | null;
+  user_id: string;
+};
+
 export default function Page() {
-  const [formData, setFormData] = useState({
-    foodName: '',
-    mealType: 'breakfast',
-    foodDate: new Date().toISOString().split('T')[0],
+
+  const param = useParams();
+  const user_id = param.id as string;
+  const router = useRouter();
+
+  const [formData, setFormData] = useState<Food>({
+    foodname: '',
+    meal: 'breakfast',
+    fooddate_at: new Date().toISOString().split('T')[0],
     foodImage: null as File | null,
+    user_id: user_id,
   });
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -39,12 +55,70 @@ export default function Page() {
     setFormData((prev) => ({ ...prev, foodImage: null }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Food data submitted:', formData);
-    // TODO: Add logic to save food data, e.g., API call
-    // Redirect to dashboard after successful save
-    // router.push('/dashboard');
+
+    let imageUrl = '';
+    
+        if (
+          formData.foodname === '' ||
+          formData.meal === '' ||
+          formData.fooddate_at === '' ||
+          !formData.foodImage
+        ) {
+          alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+          return;
+        }
+    
+        try {
+          // แก้ชื่อรูป
+          const newFileName = `${Date.now()}-${formData.foodImage.name}`;
+    
+          // อัปโหลดรูปไป Supabase Storage
+          const { error: uploadError } = await supabase
+            .storage
+            .from('food_bk')
+            .upload(newFileName, formData.foodImage);
+    
+          if (uploadError) {
+            alert(uploadError.message);
+            return;
+          }
+    
+          // ได้ public URL ของรูปที่ supabase เจนให้
+          const { data: newUrl } = supabase
+            .storage
+            .from('food_bk')
+            .getPublicUrl(newFileName);
+    
+          imageUrl = newUrl.publicUrl;
+    
+          // บันทึก food ลงตาราง
+          const { data: resData, error } = await supabase
+            .from('food_tb')
+            .insert([
+              {
+                foodname: formData.foodname,
+                meal: formData.meal,
+                fooddate_at: formData.fooddate_at,
+                food_image_url: imageUrl,
+                user_id: user_id
+              }
+            ])
+            .select();
+    
+          if (error) {
+            console.error("Try Error:", error);
+            alert("เพิ่มไม่สำเร็จ: " + error.message);
+          } else {
+            console.log("Registered successfully:", resData);
+            alert("เพิ่มสำเร็จ");
+            router.push(`/dashboard/${user_id}`);
+          }
+        } catch (err) {
+          console.error("Other Error:", err);
+          alert("เพิ่มไม่สำเร็จ: " + err);
+        }
   };
 
   return (
@@ -65,8 +139,8 @@ export default function Page() {
             <IoFastFoodOutline className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/80" />
             <input
               type="text"
-              name="foodName"
-              value={formData.foodName}
+              name="foodname"
+              value={formData.foodname}
               onChange={handleChange}
               placeholder="Food Name"
               required
@@ -75,8 +149,8 @@ export default function Page() {
           </div>
           <div className="relative">
             <select
-              name="mealType"
-              value={formData.mealType}
+              name="meal"
+              value={formData.meal}
               onChange={handleChange}
               className="w-full rounded-full border-2 border-transparent bg-white/40 p-3 text-white outline-none transition-colors duration-300 focus:border-white focus:bg-white/50"
             >
@@ -90,8 +164,8 @@ export default function Page() {
             <IoCalendarOutline className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/80" />
             <input
               type="date"
-              name="foodDate"
-              value={formData.foodDate}
+              name="fooddate_at"
+              value={formData.fooddate_at}
               onChange={handleChange}
               required
               className="w-full rounded-full border-2 border-transparent bg-white/40 p-3 pl-10 text-white placeholder-white/80 outline-none transition-colors duration-300 focus:border-white focus:bg-white/50"

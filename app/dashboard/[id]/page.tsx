@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -11,32 +10,71 @@ import {
     IoChevronBackOutline,
     IoChevronForwardOutline,
 } from 'react-icons/io5';
+import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+
+type Food = {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    foodname: string;
+    meal: string;
+    fooddate_at: string;
+    food_image_url: string;
+    user_id: string;
+};
 
 // Mock Data สำหรับทดสอบ
-const MOCK_FOOD_DATA = [
-    { id: 1, date: '2025-09-01', name: 'ข้าวผัดกะเพรา', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2023/05/30/16/57/taco-8029161_640.png' },
-    { id: 2, date: '2025-09-01', name: 'สเต็กปลาแซลมอน', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2017/03/10/13/57/cooking-2132874_1280.jpg' },
-    { id: 3, date: '2025-09-02', name: 'สลัดผักอกไก่', meal: 'มื้อเช้า', imageUrl: 'https://cdn.pixabay.com/photo/2017/11/08/22/18/spaghetti-2931846_640.jpg' },
-    { id: 4, date: '2025-09-02', name: 'แกงเขียวหวานไก่', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 5, date: '2025-09-03', name: 'ข้าวไข่เจียว', meal: 'มื้อเช้า', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 6, date: '2025-09-03', name: 'ก๋วยเตี๋ยวเรือ', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 7, date: '2025-09-04', name: 'ซุปเห็ด', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 8, date: '2025-09-04', name: 'ข้าวมันไก่', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 9, date: '2025-09-05', name: 'ต้มยำกุ้ง', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 10, date: '2025-09-05', name: 'ผัดไทย', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 11, date: '2025-09-06', name: 'ข้าวผัด', meal: 'มื้อเช้า', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-    { id: 12, date: '2025-09-06', name: 'พิซซ่า', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
-];
+// const MOCK_FOOD_DATA = [
+//     { id: 1, date: '2025-09-01', name: 'ข้าวผัดกะเพรา', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2023/05/30/16/57/taco-8029161_640.png' },
+//     { id: 2, date: '2025-09-01', name: 'สเต็กปลาแซลมอน', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2017/03/10/13/57/cooking-2132874_1280.jpg' },
+//     { id: 3, date: '2025-09-02', name: 'สลัดผักอกไก่', meal: 'มื้อเช้า', imageUrl: 'https://cdn.pixabay.com/photo/2017/11/08/22/18/spaghetti-2931846_640.jpg' },
+//     { id: 4, date: '2025-09-02', name: 'แกงเขียวหวานไก่', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 5, date: '2025-09-03', name: 'ข้าวไข่เจียว', meal: 'มื้อเช้า', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 6, date: '2025-09-03', name: 'ก๋วยเตี๋ยวเรือ', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 7, date: '2025-09-04', name: 'ซุปเห็ด', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 8, date: '2025-09-04', name: 'ข้าวมันไก่', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 9, date: '2025-09-05', name: 'ต้มยำกุ้ง', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 10, date: '2025-09-05', name: 'ผัดไทย', meal: 'มื้อกลางวัน', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 11, date: '2025-09-06', name: 'ข้าวผัด', meal: 'มื้อเช้า', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+//     { id: 12, date: '2025-09-06', name: 'พิซซ่า', meal: 'มื้อเย็น', imageUrl: 'https://cdn.pixabay.com/photo/2016/11/20/09/06/bowl-1842294_640.jpg' },
+// ];
 
 const ITEMS_PER_PAGE = 5;
 
 export default function Page() {
+
+    const param = useParams
+    const user_id = param().id as string;
+
+    //สร้าง state เพื่อเก็บข้อมูลที่ดึงมาจาก Supabase เพื่อนำมาแสดง
+    const [foods, setFoods] = useState<Food[]>([]);
+
+    //ดึงข้อมูลจาก Supabase
+    useEffect(() => {
+        const getAllFoodsByUserId = async () => {
+            const { data, error } = await supabase
+                .from('food_tb')
+                .select("*")
+                .eq('user_id', user_id)
+                .order('id', { ascending: false })
+                ;
+            if (error) {
+                console.error('Error fetching foods:', error);
+            } else {
+                setFoods(data as Food[]);
+            }
+        };
+        getAllFoodsByUserId();
+    }, [user_id]);
+
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
-    const [foods, setFoods] = useState(MOCK_FOOD_DATA);
+    // const [foods, setFoods] = useState(MOCK_FOOD_DATA);
 
     const filteredFoods = foods.filter((food) =>
-        food.name.toLowerCase().includes(searchTerm.toLowerCase())
+        food.foodname.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const totalPages = Math.ceil(filteredFoods.length / ITEMS_PER_PAGE);
@@ -47,7 +85,7 @@ export default function Page() {
         setCurrentPage(pageNumber);
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = (id: string) => {
         if (window.confirm('Are you sure you want to delete this food item?')) {
             setFoods(foods.filter((food) => food.id !== id));
         }
@@ -78,7 +116,7 @@ export default function Page() {
                             <IoSearchOutline className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/80" />
                         </div>
                         <Link
-                            href="/addfood"
+                            href={`/addfood/${user_id}`}
                             className="flex items-center justify-center rounded-full bg-white px-6 py-3 font-semibold text-blue-600 transition-transform duration-300 ease-in-out hover:scale-105 hover:bg-gray-100"
                         >
                             <IoAddCircleOutline className="mr-2 h-5 w-5" />
@@ -103,17 +141,17 @@ export default function Page() {
                             {currentFoods.length > 0 ? (
                                 currentFoods.map((food) => (
                                     <tr key={food.id} className="border-t border-white/10 transition-colors hover:bg-white/20">
-                                        <td className="px-4 py-4">{food.date}</td>
+                                        <td className="px-4 py-4">{food.fooddate_at}</td>
                                         <td className="px-4 py-4">
                                             <Image
-                                                src={food.imageUrl}
-                                                alt={food.name}
+                                                src={food.food_image_url}
+                                                alt={food.foodname}
                                                 width={64}
                                                 height={64}
                                                 className="h-16 w-16 rounded-lg object-cover"
                                             />
                                         </td>
-                                        <td className="px-4 py-4">{food.name}</td>
+                                        <td className="px-4 py-4">{food.foodname}</td>
                                         <td className="px-4 py-4">{food.meal}</td>
                                         <td className="flex justify-end gap-2 px-4 py-4">
                                             <Link

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   IoArrowBackOutline,
@@ -11,10 +12,21 @@ import {
   IoImageOutline,
   IoCloseCircleOutline,
 } from 'react-icons/io5';
+import { supabase } from '@/lib/supabaseClient';
+
+type User = {
+  fullname: string;
+  email: string;
+  password: string;
+  gender: string;
+  profileImage: File | null;
+};
 
 export default function Page() {
-  const [formData, setFormData] = useState({
-    fullName: '',
+  const router = useRouter();
+
+  const [formData, setFormData] = useState<User>({
+    fullname: '',
     email: '',
     password: '',
     gender: 'male',
@@ -42,10 +54,70 @@ export default function Page() {
     setFormData((prev) => ({ ...prev, profileImage: null }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form data submitted:', formData);
-    // TODO: Add logic to handle registration, e.g., API call
+
+    let imageUrl = '';
+
+    if (formData.fullname === '' || 
+      formData.email === '' || 
+      formData.password === '' || 
+      !formData.profileImage
+    ) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    try {
+      // แก้ชื่อรูป
+      const newFileName = `${Date.now()}-${formData.profileImage.name}`;
+
+      // อัปโหลดรูปไป Supabase Storage
+      const { error: uploadError } = await supabase
+        .storage
+        .from('user_bk')
+        .upload(newFileName, formData.profileImage);
+
+      if (uploadError) {
+        alert(uploadError.message);
+        return;
+      }
+
+      // ได้ public URL ของรูปที่ supabase เจนให้
+      const { data: newUrl } = supabase
+        .storage
+        .from('user_bk')
+        .getPublicUrl(newFileName);
+
+      imageUrl = newUrl.publicUrl;
+
+      // บันทึก user ลงตาราง
+      const { data: resData, error } = await supabase
+        .from('user_tb')
+        .insert([
+          {
+            fullname: formData.fullname,
+            email: formData.email,
+            password: formData.password,
+            gender: formData.gender,
+            user_image_url: imageUrl, 
+          }
+        ])
+        .select();
+
+      if (error) {
+        console.error("Try Error:", error);
+        alert("สมัครไม่สำเร็จ: " + error.message);
+      } else {
+        console.log("Registered successfully:", resData);
+        alert("สมัครสำเร็จ");
+        router.push('/login');
+      }
+    } catch (err) {
+      console.error("Other Error:", err);
+      alert("สมัครไม่สำเร็จ: " + err);
+    }
+
   };
 
   return (
@@ -66,8 +138,8 @@ export default function Page() {
             <IoPersonOutline className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/80" />
             <input
               type="text"
-              name="fullName"
-              value={formData.fullName}
+              name="fullname"
+              value={formData.fullname}
               onChange={handleChange}
               placeholder="Full Name"
               required
